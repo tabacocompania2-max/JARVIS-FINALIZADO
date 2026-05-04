@@ -6,7 +6,12 @@ class GrokService {
   private apiKey: string;
 
   constructor() {
-    this.apiKey = GROK_API_KEY;
+    this.apiKey = process.env.EXPO_PUBLIC_GROK_API_KEY || '';
+    if (!this.apiKey) {
+      logService.add("⚠️ Warning: Groq API Key is MISSING");
+    } else {
+      logService.add("✅ Groq API Key loaded");
+    }
   }
 
   async chat(message: string, history: any[] = []): Promise<string> {
