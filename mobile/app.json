@@ -13,9 +13,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#0f172a"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.carlosmanuel11.jarvis"
@@ -32,13 +29,7 @@
       "package": "com.carlosmanuel11.jarvis"
     },
     "plugins": [
-      "expo-updates",
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Allow Jarvis to hear your English practice."
-        }
-      ]
+      "expo-updates"
     ],
     "extra": {
       "eas": {
@@ -47,8 +38,7 @@
     },
     "runtimeVersion": "1.2.1",
     "updates": {
-      "url": "https://u.expo.dev/edf0f54a-ce84-4d29-915d-85b34529997c",
-      "fallbackToCacheTimeout": 30000
+      "url": "https://u.expo.dev/edf0f54a-ce84-4d29-915d-85b34529997c"
     }
   }
 }
