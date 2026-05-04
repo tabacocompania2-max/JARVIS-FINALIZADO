@@ -1,0 +1,25 @@
+# Dependency directories
+node_modules/
+client/node_modules/
+server/node_modules/
+mobile/node_modules/
+mobile/.expo/
+
+# Local env files
+.env
+.env.local
+client/.env.local
+server/.env
+mobile/.env
+mobile/.env.local
+
+# Build outputs
+client/dist/
+server/dist/
+mobile/dist/
+mobile/.expo/
+
+# Misc
+.DS_Store
+*.log
+firebase-adminsdk.json
