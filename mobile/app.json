@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "English Coach - Jarvis",
+    "name": "english-coach-jarvis",
     "slug": "english-coach-jarvis",
     "owner": "carlosmanuel11",
     "scheme": "jarvis-coach",
@@ -11,82 +11,34 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f0f1e"
+      "backgroundColor": "#0f172a"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTabletMode": true,
-      "infoPlist": {
-        "NSMicrophoneUsageDescription": "Jarvis necesita acceso al micrófono para escucharte y ser tu profesor de inglés",
-        "NSLocalNetworkUsageDescription": "Jarvis necesita acceso a la red local",
-        "NSBonjourServices": [
-          "_jarvis._tcp",
-          "_jarvis._tcp"
-        ],
-        "UIBackgroundModes": [
-          "audio",
-          "audio"
-        ]
-      },
-      "bundleIdentifier": "com.jarvis.englishcoach"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carlosmanuel11.jarvis"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0f0f1e"
+        "backgroundColor": "#0f172a"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.CHANGE_NETWORK_STATE",
-        "android.permission.READ_CONTACTS",
-        "android.permission.CALL_PHONE",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.WRITE_CONTACTS",
-        "android.permission.USE_FINGERPRINT",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.CHANGE_NETWORK_STATE",
-        "android.permission.READ_CONTACTS",
-        "android.permission.CALL_PHONE",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.WRITE_CONTACTS",
-        "android.permission.USE_FINGERPRINT"
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
       ],
-      "package": "com.jarvis.englishcoach",
-      "minSdkVersion": 24
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "package": "com.carlosmanuel11.jarvis"
     },
     "plugins": [
+      "expo-updates",
       [
         "expo-av",
         {
-          "microphonePermission": "El asistente Jarvis necesita tu micrófono para funcionar"
+          "microphonePermission": "Allow Jarvis to hear your English practice."
         }
-      ],
-      [
-        "expo-contacts",
-        {
-          "contactsPermission": "Jarvis necesita acceso a tus contactos para realizar llamadas seguras."
-        }
-      ],
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "Jarvis necesita verificar tu identidad con biometría."
-        }
-      ],
-      "expo-web-browser",
-      "expo-audio",
-      "expo-updates"
+      ]
     ],
     "extra": {
       "eas": {
