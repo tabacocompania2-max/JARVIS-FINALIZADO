@@ -1,14 +1,12 @@
-import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 import { audioStreamer } from './audioStreamer';
-import { sttService } from './sttService';
+import { groqSTTService } from './groqSTTService';
 import { grokService } from './grokService';
 import { actionService } from './actionService';
-import { deepgramService } from './deepgramService';
 
 class RealtimeEngine {
   private isRunning = false;
   private isSpeaking = false;
-  private sound: Audio.Sound | null = null;
 
   async start(callbacks: {
     onTranscript: (text: string) => void;
@@ -22,11 +20,9 @@ class RealtimeEngine {
     await audioStreamer.start(async (uri) => {
       if (!this.isRunning || this.isSpeaking) return;
 
-      console.log('📡 Sending to STT');
-      const text = await sttService.transcribe(uri);
+      const text = await groqSTTService.transcribe(uri);
 
       if (text && text.trim().length > 2) {
-        console.log('🧠 STT result:', text);
         callbacks.onTranscript(text);
         await this.processMessage(text, callbacks);
       }
@@ -41,51 +37,37 @@ class RealtimeEngine {
       callbacks.onStateChange('thinking');
 
       const response = await grokService.chat(text, []);
-      const clean = await actionService.handleResponseActions(response);
+      const cleanResponse = await actionService.handleResponseActions(response);
 
-      callbacks.onJarvisResponse(clean);
-      callbacks.onStateChange('speaking');
+      callbacks.onJarvisResponse(cleanResponse);
+      
+      console.log('🔊 Speaking:', cleanResponse);
 
-      const url = await deepgramService.generateSpeech(clean);
-      await this.play(url);
+      Speech.stop();
+      Speech.speak(cleanResponse, {
+        language: 'es-CO',
+        onStart: () => callbacks.onStateChange('speaking'),
+        onDone: () => {
+            this.isSpeaking = false;
+            callbacks.onStateChange('listening');
+        },
+        onError: (e) => {
+            console.log('❌ Speech error:', e);
+            this.isSpeaking = false;
+            callbacks.onStateChange('listening');
+        }
+      });
 
     } catch (e) {
       console.log('❌ process error', e);
-    } finally {
       this.isSpeaking = false;
       callbacks.onStateChange('listening');
     }
   }
 
-  async play(audioUrl: string) {
-    try {
-      if (this.sound) {
-        await this.sound.unloadAsync();
-      }
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true }
-      );
-
-      this.sound = sound;
-
-      return new Promise((resolve) => {
-        sound.setOnPlaybackStatusUpdate((status: any) => {
-          if (status.didJustFinish) {
-            resolve(true);
-          }
-        });
-      });
-
-    } catch (e) {
-      console.log('❌ audio play error', e);
-    }
-  }
-
   stop() {
     this.isRunning = false;
-    this.sound?.stopAsync();
+    Speech.stop();
     audioStreamer.stop();
   }
 }

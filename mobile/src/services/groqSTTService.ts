@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-class STTService {
+class GroqSTTService {
   private apiKey: string;
   private apiUrl: string;
 
@@ -10,7 +10,11 @@ class STTService {
   }
 
   async transcribe(uri: string): Promise<string> {
+    if (!uri) return '';
+
     try {
+      console.log('📡 Sending to Groq STT');
+      
       const formData = new FormData();
       formData.append('file', {
         uri: uri,
@@ -26,14 +30,17 @@ class STTService {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 10000,
       });
 
-      return response.data.text || '';
-    } catch (error) {
-      console.log('❌ STT error:', error);
+      const text = response.data.text || '';
+      console.log('🧠 STT result:', text);
+      return text;
+    } catch (error: any) {
+      console.log('❌ Groq STT error:', error.response?.data || error.message);
       return '';
     }
   }
 }
 
-export const sttService = new STTService();
+export const groqSTTService = new GroqSTTService();

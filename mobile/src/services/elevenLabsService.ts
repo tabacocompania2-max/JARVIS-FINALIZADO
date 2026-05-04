@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 
 // CONFIGURACIÓN DE ELEVENLABS
-const API_KEY = 'sk_7c555891aa493d2a9853acc87ef6e0a0a659cbef9d2e5dc3'.trim();
+const API_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY || '';
 const VOICE_ID = 'b2htR0pMe28pYwCY9gnP'; // Voz de Medellín
 
 export const elevenLabsService = {
