@@ -17,18 +17,28 @@ class RealtimeEngine {
 
     this.isRunning = true;
 
-    await audioStreamer.start(async (uri) => {
-      if (!this.isRunning || this.isSpeaking) return;
+    try {
+      await audioStreamer.start(async (uri) => {
+        if (!this.isRunning || this.isSpeaking) return;
 
-      const text = await groqSTTService.transcribe(uri);
+        try {
+          const text = await groqSTTService.transcribe(uri);
 
-      if (text && text.trim().length > 2) {
-        callbacks.onTranscript(text);
-        await this.processMessage(text, callbacks);
-      }
-    });
+          if (text && text.trim().length > 2) {
+            callbacks.onTranscript(text);
+            await this.processMessage(text, callbacks);
+          }
+        } catch (sttError) {
+          console.log('❌ STT pipeline error:', sttError);
+          callbacks.onStateChange('listening');
+        }
+      });
 
-    callbacks.onStateChange('listening');
+      callbacks.onStateChange('listening');
+    } catch (startError) {
+      console.log('❌ Engine start error:', startError);
+      this.isRunning = false;
+    }
   }
 
   public async processMessage(text: string, callbacks: any) {
@@ -43,23 +53,29 @@ class RealtimeEngine {
       
       console.log('🔊 Speaking:', cleanResponse);
 
-      Speech.stop();
-      Speech.speak(cleanResponse, {
+      await Speech.stop();
+
+      await Speech.speak(cleanResponse, {
         language: 'es-CO',
-        onStart: () => callbacks.onStateChange('speaking'),
-        onDone: () => {
-            this.isSpeaking = false;
-            callbacks.onStateChange('listening');
+        rate: 1.0,
+        pitch: 1.0,
+        onStart: () => {
+          this.isSpeaking = true;
+          callbacks.onStateChange('speaking');
         },
-        onError: (e) => {
-            console.log('❌ Speech error:', e);
-            this.isSpeaking = false;
-            callbacks.onStateChange('listening');
+        onDone: () => {
+          this.isSpeaking = false;
+          callbacks.onStateChange('listening');
+        },
+        onError: (error) => {
+          console.log('❌ TTS Speech error:', error);
+          this.isSpeaking = false;
+          callbacks.onStateChange('listening');
         }
       });
 
     } catch (e) {
-      console.log('❌ process error', e);
+      console.log('❌ Global process error:', e);
       this.isSpeaking = false;
       callbacks.onStateChange('listening');
     }
@@ -67,8 +83,13 @@ class RealtimeEngine {
 
   stop() {
     this.isRunning = false;
-    Speech.stop();
-    audioStreamer.stop();
+    this.isSpeaking = false;
+    try {
+      Speech.stop();
+      audioStreamer.stop();
+    } catch (e) {
+      console.log('⚠️ stop engine error', e);
+    }
   }
 }
 

@@ -2,11 +2,13 @@ import axios from 'axios';
 
 class GroqSTTService {
   private apiKey: string;
-  private apiUrl: string;
+  private apiUrl: string = 'https://api.groq.com/openai/v1/audio/transcriptions';
 
   constructor() {
     this.apiKey = process.env.EXPO_PUBLIC_GROK_API_KEY || '';
-    this.apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
+    if (!this.apiKey) {
+      console.log('❌ Missing EXPO_PUBLIC_GROK_API_KEY');
+    }
   }
 
   async transcribe(uri: string): Promise<string> {
