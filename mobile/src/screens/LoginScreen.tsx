@@ -4,8 +4,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 export const LoginScreen = ({ navigation }: any) => (
   <View style={styles.container}>
     <Text style={styles.logo}>🎓 Jarvis</Text>
-    <Text style={styles.title}>Jarvis English Coach v1.2.1 (Fixing Startup)</Text>
-    <Text style={{color: '#64748b', fontSize: 12, marginBottom: 20}}>System Ready | Recovery Mode</Text>
+    <Text style={styles.title}>Jarvis English Coach v1.2.3 (Stable Fix)</Text>
+    <Text style={{color: '#64748b', fontSize: 12, marginBottom: 20}}>System Ready | All Systems Go</Text>
     <TouchableOpacity 
       style={styles.button}
       onPress={() => navigation.navigate('Jarvis')}
