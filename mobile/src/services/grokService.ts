@@ -7,11 +7,8 @@ class GrokService {
 
   constructor() {
     this.apiKey = process.env.EXPO_PUBLIC_GROK_API_KEY || '';
-    if (!this.apiKey) {
-      logService.add("⚠️ Warning: Groq API Key is MISSING");
-    } else {
-      logService.add("✅ Groq API Key loaded");
-    }
+    const prefix = this.apiKey ? this.apiKey.substring(0, 7) : 'NONE';
+    logService.add(`✅ Key Loaded: ${prefix}... (len: ${this.apiKey.length})`);
   }
 
   async chat(message: string, history: any[] = []): Promise<string> {
