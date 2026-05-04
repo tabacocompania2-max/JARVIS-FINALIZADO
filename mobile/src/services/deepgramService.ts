@@ -1,30 +1,46 @@
-import * as Speech from 'expo-speech';
-import { logService } from './logService';
-
-const DEEPGRAM_API_KEY = '22074d77b976d229d9dc176fa131214c36b2edee';
-// Probamos con Helios que es el más compatible o Asteria
-const VOICE_MODEL = 'aura-helios-en'; 
+import * as FileSystem from 'expo-file-system';
+import axios from 'axios';
 
 class DeepgramService {
+  private apiKey: string;
+  private apiUrl: string = 'https://api.openai.com/v1/audio/speech';
+
+  constructor() {
+    this.apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
+  }
+
   async generateSpeech(text: string): Promise<string> {
-    logService.add(`🔗 Generando voz (${VOICE_MODEL})...`);
-    // Añadimos &container=mp3 para asegurar compatibilidad
-    return `https://api.deepgram.com/v1/speak?model=${VOICE_MODEL}&text=${encodeURIComponent(text)}&container=mp3`;
-  }
+    try {
+      console.log('🔊 Generating speech with OpenAI...');
+      
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          model: 'tts-1',
+          voice: 'nova',
+          input: text,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          responseType: 'arraybuffer',
+        }
+      );
 
-  getHeaders() {
-    return {
-      'Authorization': `Token ${DEEPGRAM_API_KEY}`,
-    };
-  }
+      const fileUri = `${FileSystem.cacheDirectory}jarvis_response.mp3`;
+      const base64 = Buffer.from(response.data, 'binary').toString('base64');
 
-  async speakFallback(text: string) {
-    logService.add("🗣️ Fallback: Voz Nativa...");
-    Speech.speak(text, {
-      language: 'en-US',
-      pitch: 1.0,
-      rate: 0.9,
-    });
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      return fileUri;
+    } catch (error) {
+      console.log('❌ TTS error:', error);
+      throw error;
+    }
   }
 }
 

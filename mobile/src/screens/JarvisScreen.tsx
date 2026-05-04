@@ -1,30 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useSpeechAudio } from '../hooks/useSpeechAudio';
-import { logService } from '../services/logService';
+import React, { useState as useReactState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useJarvisEngine } from '../hooks/useJarvisEngine';
+import { MediaPlayer } from '../components/MediaPlayer';
 
-const JarvisScreen = ({ navigation }: any) => {
-  const { transcript, jarvisResponse, isListening, isProcessing, isJarvisSpeaking, startListening, stopListening, handleUserMessage } = useSpeechAudio();
-  const [inputText, setInputText] = useState('');
-  const [status, setStatus] = useState('Ready');
-  const [logs, setLogs] = useState<string[]>([]);
+export function JarvisScreen({ navigation }: any) {
+  const {
+    isListening,
+    isProcessing,
+    isJarvisSpeaking,
+    transcript,
+    jarvisResponse,
+    audioLevel,
+    currentMedia,
+    startListening,
+    stopListening,
+    stopTTS,
+    handleUserMessage,
+  } = useJarvisEngine();
 
-  useEffect(() => {
-    const unsub = logService.subscribe(setLogs);
-    return unsub;
-  }, []);
+  const [inputText, setInputText] = useReactState('');
 
-  useEffect(() => {
-    if (isJarvisSpeaking) setStatus('Speaking...');
-    else if (isProcessing) setStatus('Thinking...');
-    else if (isListening) setStatus('Listening...');
-    else setStatus('Ready');
-  }, [isListening, isProcessing, isJarvisSpeaking]);
+  const handleTextSubmit = async () => {
+    if (!inputText.trim()) return;
+    const textToSend = inputText;
+    setInputText('');
+    await handleUserMessage(textToSend);
+  };
 
-  const onSend = () => {
-    if (inputText.trim()) {
-      handleUserMessage(inputText);
-      setInputText('');
+  const handleMicPress = async () => {
+    if (isJarvisSpeaking) {
+      stopTTS();
+    } else if (isListening) {
+      stopListening();
+    } else {
+      startListening();
     }
   };
 
@@ -34,111 +53,354 @@ const JarvisScreen = ({ navigation }: any) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>🎓 Jarvis</Text>
-            <Text style={styles.statusLabel}>STATUS: <Text style={styles.statusValue}>{status}</Text></Text>
-          </View>
+          <Text style={styles.title}>🎓 Jarvis</Text>
           <TouchableOpacity 
             onPress={() => navigation.navigate('Progress')}
-            style={styles.statsBtn}
+            style={styles.historyButton}
           >
-            <Text>📊</Text>
+            <Text style={styles.historyIcon}>📊 Historial</Text>
           </TouchableOpacity>
+          <Text style={styles.subtitle}>Tu profesor de inglés 24/7</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.responseCard}>
-            <Text style={styles.jarvisLabel}>JARVIS:</Text>
-            <Text style={styles.responseText}>{jarvisResponse}</Text>
-          </View>
+        {/* Visualizador de estado */}
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusLabel}>
+            {isProcessing
+              ? '⏳ Procesando...'
+              : isJarvisSpeaking
+              ? '🔊 Jarvis hablando'
+              : isListening
+              ? '🎤 Escuchando'
+              : '⭕ Apagado'}
+          </Text>
+          <View
+            style={[
+              styles.statusIndicator,
+              {
+                backgroundColor: isListening ? '#ef4444' : isJarvisSpeaking ? '#f59e0b' : '#06b6d4',
+                opacity: isListening || isProcessing || isJarvisSpeaking ? 1 : 0.5,
+              },
+            ]}
+          />
+        </View>
 
-          {transcript ? (
-            <View style={styles.transcriptCard}>
-              <Text style={styles.transcriptLabel}>LAST TRANSCRIPT:</Text>
-              <Text style={styles.transcriptText}>{transcript}</Text>
+        {/* Nivel de audio */}
+        {isListening && (
+          <View style={styles.audioLevelContainer}>
+            <View
+              style={[
+                styles.audioLevel,
+                { width: `${audioLevel}%` },
+              ]}
+            />
+          </View>
+        )}
+
+        {/* Respuesta de Jarvis */}
+        {jarvisResponse && (
+          <View style={styles.responseContainer}>
+            <View style={styles.responseHeader}>
+              <Text style={styles.responseLabel}>Jarvis dice:</Text>
+              {isJarvisSpeaking && <Text style={styles.speakingBadge}>LIVE</Text>}
             </View>
-          ) : null}
-
-          <View style={styles.voiceContainer}>
-            <TouchableOpacity 
-              style={[styles.voiceBtn, isListening && styles.activeVoiceBtn]}
-              onPress={isListening ? stopListening : startListening}
-            >
-              <Text style={styles.voiceBtnText}>
-                {isListening ? '⏹️ STOP SESSION' : '🎙️ START VOICE MODE'}
-              </Text>
-            </TouchableOpacity>
-            <Text style={styles.badge}>V5.1.0 - REAL VOICE MODE ACTIVE 🏗️🎙️</Text>
+            <Text style={styles.responseText}>"{jarvisResponse}"</Text>
           </View>
+        )}
 
-          <View style={styles.console}>
-            <View style={styles.consoleHeader}>
-              <Text style={styles.consoleTitle}>SYSTEM LOGS:</Text>
-              <TouchableOpacity onPress={() => logService.clear()}>
-                <Text style={styles.clearBtn}>🗑️ Clear</Text>
-              </TouchableOpacity>
-            </View>
-            {logs.map((log, i) => (
-              <Text key={i} style={styles.logText}>{log}</Text>
-            ))}
+        {/* Reproductor de Media */}
+        {currentMedia && (
+          <MediaPlayer
+            mediaType={(currentMedia as any).type}
+            title={(currentMedia as any).title}
+            artist={(currentMedia as any).artist}
+            onPress={() => {
+              console.log('▶️ Reproduciendo:', (currentMedia as any).title);
+            }}
+          />
+        )}
+
+        {/* Transcript del usuario */}
+        {transcript && (
+          <View style={styles.transcriptContainer}>
+            <Text style={styles.transcriptLabel}>Tú dijiste:</Text>
+            <Text style={styles.transcriptText}>"{transcript}"</Text>
           </View>
+        )}
+
+        {/* Placeholder para historial */}
+        <View style={styles.historyContainer}>
+          <Text style={styles.historyLabel}>Conversación:</Text>
+          <View style={styles.historyBox}>
+            <Text style={styles.historyText}>
+              {isListening ? 'Jarvis está en modo escucha... ¡Adelante!' : '¡Hola! Pulsa el micro para hablar con Jarvis y probar los cambios...'}
+            </Text>
+          </View>
+        </View>
         </ScrollView>
 
+        {/* Barra de entrada de texto */}
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.textInput}
-            placeholder="Talk to Jarvis..."
-            placeholderTextColor="#64748b"
+            placeholder="Escribe un comando a Jarvis..."
+            placeholderTextColor="#666"
             value={inputText}
             onChangeText={setInputText}
-            onSubmitEditing={onSend}
+            onSubmitEditing={handleTextSubmit}
           />
-          <TouchableOpacity style={styles.sendBtn} onPress={onSend}>
-            <Text style={styles.sendBtnText}>➤</Text>
+          {inputText.length > 0 && (
+            <TouchableOpacity style={styles.sendButton} onPress={handleTextSubmit}>
+              <Text style={styles.sendIcon}>🚀</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Botón de micrófono (flotante) */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.micButton,
+              isListening && styles.micButtonActive,
+              isJarvisSpeaking && styles.micButtonSpeaking,
+              isProcessing && styles.micButtonDisabled,
+            ]}
+            onPress={handleMicPress}
+            disabled={isProcessing}
+          >
+            <Text style={styles.micIcon}>
+              {isListening || isJarvisSpeaking ? '⏹️' : '🎤'}
+            </Text>
           </TouchableOpacity>
+          <Text style={styles.buttonLabel}>
+            {isListening ? 'Detener' : isJarvisSpeaking ? 'Callar Jarvis' : 'Hablar'}
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0f172a' },
-  header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#1e293b' },
-  title: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
-  statusLabel: { color: '#64748b', fontSize: 10, fontWeight: 'bold', marginTop: 4 },
-  statusValue: { color: '#38bdf8' },
-  statsBtn: { backgroundColor: '#1e293b', padding: 10, borderRadius: 10 },
-  scrollContent: { padding: 20 },
-  responseCard: { backgroundColor: '#1e293b', padding: 20, borderRadius: 15, marginBottom: 20, minHeight: 120 },
-  jarvisLabel: { color: '#38bdf8', fontSize: 10, fontWeight: 'bold', marginBottom: 8 },
-  responseText: { color: '#fff', fontSize: 17, lineHeight: 24 },
-  transcriptCard: { backgroundColor: 'rgba(56, 189, 248, 0.05)', padding: 15, borderRadius: 10, marginBottom: 20, borderLeftWidth: 3, borderLeftColor: '#38bdf8' },
-  transcriptLabel: { color: '#64748b', fontSize: 10, fontWeight: 'bold', marginBottom: 5 },
-  transcriptText: { color: '#94a3b8', fontSize: 15, fontStyle: 'italic' },
-  voiceContainer: { alignItems: 'center', marginVertical: 20 },
-  voiceBtn: { backgroundColor: '#38bdf8', paddingVertical: 15, paddingHorizontal: 40, borderRadius: 30, elevation: 5 },
-  activeVoiceBtn: { backgroundColor: '#ef4444' },
-  voiceBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  badge: { color: '#38bdf8', fontSize: 10, marginTop: 10, fontWeight: 'bold' },
-  console: { backgroundColor: '#000', padding: 12, borderRadius: 8, marginTop: 20, borderWidth: 1, borderColor: '#1e293b' },
-  consoleHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  consoleTitle: { color: '#4ade80', fontSize: 10, fontWeight: 'bold' },
-  clearBtn: { color: '#f87171', fontSize: 10, fontWeight: 'bold' },
-  logText: { color: '#94a3b8', fontSize: 10, marginBottom: 2, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
-  inputWrapper: { 
-    flexDirection: 'row', 
-    padding: 15, 
-    paddingBottom: Platform.OS === 'android' ? 30 : 20, 
-    backgroundColor: '#1e293b', 
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#334155'
+  container: {
+    flex: 1,
+    backgroundColor: '#0f0f1e',
   },
-  textInput: { flex: 1, backgroundColor: '#0f172a', color: '#fff', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 25, fontSize: 15, marginRight: 10 },
-  sendBtn: { backgroundColor: '#38bdf8', width: 45, height: 45, borderRadius: 23, justifyContent: 'center', alignItems: 'center' },
-  sendBtnText: { color: '#fff', fontSize: 20 }
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 160,
+  },
+  header: {
+    paddingTop: 20,
+    marginBottom: 30,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  historyButton: {
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+  },
+  historyIcon: {
+    color: '#06b6d4',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#06b6d4',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#888',
+    letterSpacing: 1,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    gap: 10,
+    backgroundColor: '#1a1a2e',
+    padding: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignSelf: 'center',
+  },
+  statusLabel: {
+    color: '#e0e0e0',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  statusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  audioLevelContainer: {
+    height: 6,
+    backgroundColor: '#333',
+    borderRadius: 3,
+    marginBottom: 30,
+    overflow: 'hidden',
+  },
+  audioLevel: {
+    height: '100%',
+    backgroundColor: '#06b6d4',
+  },
+  responseContainer: {
+    backgroundColor: '#1e1e3a',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#06b6d4',
+  },
+  responseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  responseLabel: {
+    color: '#06b6d4',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  speakingBadge: {
+    backgroundColor: '#ef4444',
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  responseText: {
+    color: '#ffffff',
+    fontSize: 18,
+    lineHeight: 26,
+  },
+  transcriptContainer: {
+    backgroundColor: '#161625',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+  },
+  transcriptLabel: {
+    color: '#888',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  transcriptText: {
+    color: '#b0b0b0',
+    fontSize: 15,
+    fontStyle: 'italic',
+  },
+  historyContainer: {
+    marginTop: 10,
+  },
+  historyLabel: {
+    color: '#555',
+    fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 5,
+  },
+  historyBox: {
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+    borderStyle: 'dashed',
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  historyText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  micButton: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#06b6d4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    marginBottom: 10,
+  },
+  micButtonActive: {
+    backgroundColor: '#ef4444',
+    shadowColor: '#ef4444',
+  },
+  micButtonSpeaking: {
+    backgroundColor: '#f59e0b',
+    shadowColor: '#f59e0b',
+  },
+  micButtonDisabled: {
+    backgroundColor: '#333',
+    shadowOpacity: 0,
+  },
+  micIcon: {
+    fontSize: 32,
+  },
+  buttonLabel: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  inputWrapper: {
+    position: 'absolute',
+    bottom: 110,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#161625',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  textInput: {
+    flex: 1,
+    height: 50,
+    color: '#fff',
+    fontSize: 16,
+  },
+  sendButton: {
+    marginLeft: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#06b6d4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendIcon: {
+    fontSize: 18,
+  },
 });
 
 export default JarvisScreen;

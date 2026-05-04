@@ -1,45 +1,37 @@
-import * as FileSystem from 'expo-file-system';
-import { uploadAsync, FileSystemUploadType } from 'expo-file-system/legacy';
-import { logService } from './logService';
-
-const GROK_API_KEY = process.env.EXPO_PUBLIC_GROK_API_KEY;
-const GROK_STT_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+import axios from 'axios';
 
 class STTService {
-  async transcribe(uri: string): Promise<string | null> {
+  private apiKey: string;
+  private apiUrl: string;
+
+  constructor() {
+    this.apiKey = process.env.EXPO_PUBLIC_GROK_API_KEY || '';
+    this.apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
+  }
+
+  async transcribe(uri: string): Promise<string> {
     try {
-      logService.add("🌐 Escuchando multilingüe...");
+      const formData = new FormData();
+      formData.append('file', {
+        uri: uri,
+        name: 'audio.m4a',
+        type: 'audio/m4a',
+      } as any);
       
-      const response = await uploadAsync(
-        GROK_STT_URL,
-        uri,
-        {
-          httpMethod: 'POST',
-          uploadType: FileSystemUploadType.MULTIPART,
-          fieldName: 'file',
-          parameters: { 
-            model: 'whisper-large-v3-turbo',
-            // ELIMINADO: language: 'en' 
-            // Ahora Whisper detectará automáticamente si hablas español o inglés
-          },
-          headers: { 
-            'Authorization': `Bearer ${GROK_API_KEY}`,
-          },
-        }
-      );
+      formData.append('model', 'whisper-large-v3');
+      formData.append('language', 'es');
 
-      if (response.status !== 200) {
-        logService.add(`❌ Error STT: ${response.status}`);
-        return null;
-      }
+      const response = await axios.post(this.apiUrl, formData, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-      const data = JSON.parse(response.body);
-      const text = data.text || null;
-      if (text) logService.add(`💬 User: ${text}`);
-      return text;
-    } catch (error: any) {
-      logService.add(`❌ Error: ${error.message}`);
-      return null;
+      return response.data.text || '';
+    } catch (error) {
+      console.log('❌ STT error:', error);
+      return '';
     }
   }
 }
