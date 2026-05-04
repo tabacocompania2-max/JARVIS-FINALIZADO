@@ -11,6 +11,8 @@ export function useSpeechAudio() {
   const [isJarvisSpeaking, setIsJarvisSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [jarvisResponse, setJarvisResponse] = useState('¡Hola! Soy Jarvis. Pulsa el botón para empezar tu clase o escribe algo abajo. ⚡');
+  const [history, setHistory] = useState<Array<{ role: string; content: string }>>([]);
+  const MAX_HISTORY = 10;
 
   useEffect(() => {
     const setupAudio = async () => {
@@ -64,14 +66,22 @@ export function useSpeechAudio() {
     if (!userMessage.trim()) return;
     setIsProcessing(true);
     setTranscript(userMessage);
+    
     try {
-      const response = await grokService.chat(userMessage, []);
+      const newUserHistory = [...history, { role: 'user', content: userMessage }];
+      if (newUserHistory.length > MAX_HISTORY) newUserHistory.shift();
+      
+      const response = await grokService.chat(userMessage, history);
+      
+      const newHistory = [...newUserHistory, { role: 'assistant', content: response }];
+      if (newHistory.length > MAX_HISTORY) newHistory.shift();
+      setHistory(newHistory);
+
       const cleanResponse = await actionService.handleResponseActions(response);
       setJarvisResponse(cleanResponse);
       
       // Voz de Jarvis
       const audioUrl = await deepgramService.generateSpeech(cleanResponse);
-      // Opcional: Reproducir audio
       setIsProcessing(false);
     } catch (error) {
       console.error('Error:', error);

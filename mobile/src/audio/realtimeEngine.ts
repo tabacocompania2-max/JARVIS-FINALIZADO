@@ -11,6 +11,8 @@ class RealtimeEngine {
   private isJarvisSpeaking: boolean = false;
   private playbackLock: boolean = false;
   private postTTSBuffer: boolean = false;
+  private conversationHistory: Array<{ role: string; content: string }> = [];
+  private readonly MAX_HISTORY = 10;
   
   // Umbrales de volumen (en dB, -160 a 0)
   private readonly BARGE_IN_THRESHOLD = -20; // Nivel para interrumpir a Jarvis
@@ -68,7 +70,16 @@ class RealtimeEngine {
 
   private async processUserMessage(text: string, callbacks: any) {
     try {
-      const response = await grokService.chat(text, []);
+      // 1. Agregar mensaje del usuario al historial
+      this.conversationHistory.push({ role: 'user', content: text });
+      if (this.conversationHistory.length > this.MAX_HISTORY) this.conversationHistory.shift();
+
+      const response = await grokService.chat(text, this.conversationHistory.slice(0, -1));
+      
+      // 2. Agregar respuesta de Jarvis al historial
+      this.conversationHistory.push({ role: 'assistant', content: response });
+      if (this.conversationHistory.length > this.MAX_HISTORY) this.conversationHistory.shift();
+
       const cleanResponse = await actionService.handleResponseActions(response);
       logService.add(`🤖 Jarvis: ${cleanResponse.substring(0, 50)}...`);
       callbacks.onJarvisResponse(cleanResponse);
