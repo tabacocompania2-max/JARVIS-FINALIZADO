@@ -1,45 +1,40 @@
 import axios from 'axios';
+import { getAuthToken } from './firebase';
 
 class GroqSTTService {
-  private apiKey: string;
-  private apiUrl: string = 'https://api.groq.com/openai/v1/audio/transcriptions';
-
-  constructor() {
-    this.apiKey = process.env.EXPO_PUBLIC_GROK_API_KEY || '';
-    if (!this.apiKey) {
-      console.log('❌ Missing EXPO_PUBLIC_GROK_API_KEY');
-    }
+  private getApiUrl() {
+    return process.env.EXPO_PUBLIC_API_URL || 'https://jarvis-coach-v2-production.up.railway.app';
   }
 
   async transcribe(uri: string): Promise<string> {
     if (!uri) return '';
 
     try {
-      console.log('📡 Sending to Groq STT');
+      console.log('📡 Sending audio to backend for transcription...');
       
+      const token = await getAuthToken();
       const formData = new FormData();
+      
+      // En React Native, el FormData espera un objeto con uri, name y type para archivos
       formData.append('file', {
         uri: uri,
         name: 'audio.m4a',
         type: 'audio/m4a',
       } as any);
-      
-      formData.append('model', 'whisper-large-v3');
-      formData.append('language', 'es');
 
-      const response = await axios.post(this.apiUrl, formData, {
+      const response = await axios.post(`${this.getApiUrl()}/api/ai/transcribe`, formData, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 10000,
+        timeout: 15000,
       });
 
       const text = response.data.text || '';
-      console.log('🧠 STT result:', text);
+      console.log('🧠 Transcription received:', text);
       return text;
     } catch (error: any) {
-      console.log('❌ Groq STT error:', error.response?.data || error.message);
+      console.error('❌ Backend Transcription error:', error.response?.data || error.message);
       return '';
     }
   }

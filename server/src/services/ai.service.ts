@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -42,6 +43,61 @@ export async function callGroqAI(
   } catch (error: any) {
     console.error('Groq API Error:', error.message);
     throw new Error(`Failed to get response from Groq: ${error.message}`);
+  }
+}
+
+export async function transcribeAudio(
+  audioBuffer: Buffer,
+  filename: string = 'audio.m4a'
+): Promise<string> {
+  console.log('--- Transcribing audio with Groq Whisper ---');
+  try {
+    const transcription = await groq.audio.transcriptions.create({
+      file: new File([audioBuffer], filename),
+      model: 'whisper-large-v3',
+      language: 'es',
+    });
+
+    return transcription.text;
+  } catch (error: any) {
+    console.error('Groq Transcription Error:', error.message);
+    throw new Error(`Failed to transcribe audio: ${error.message}`);
+  }
+}
+
+export async function generateSpeech(text: string): Promise<Buffer> {
+  console.log('--- Generating speech with ElevenLabs ---');
+  const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+  const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'b2htR0pMe28pYwCY9gnP';
+
+  if (!ELEVEN_API_KEY) {
+    throw new Error('Missing ELEVENLABS_API_KEY');
+  }
+
+  try {
+    const response = await axios.post(
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      {
+        text: text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
+      },
+      {
+        headers: {
+          'xi-api-key': ELEVEN_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        responseType: 'arraybuffer',
+      }
+    );
+
+    return Buffer.from(response.data);
+  } catch (error: any) {
+    console.error('ElevenLabs Error:', error.response?.data || error.message);
+    throw new Error(`Failed to generate speech: ${error.message}`);
   }
 }
 

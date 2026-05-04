@@ -1,22 +1,27 @@
-const YOUTUBE_API_KEY = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY;
+import axios from 'axios';
 
 class YoutubeService {
+  private getApiUrl() {
+    return process.env.EXPO_PUBLIC_API_URL || 'https://jarvis-coach-v2-production.up.railway.app';
+  }
+
   /**
-   * Busca el primer video relevante para una consulta y retorna su ID.
+   * Busca el primer video relevante para una consulta usando el backend.
    */
   async getFirstVideoId(query: string): Promise<string | null> {
     try {
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`
-      );
-      const data = await response.json();
+      console.log('📺 Buscando video en YouTube vía backend:', query);
       
-      if (data.items && data.items.length > 0) {
-        return data.items[0].id.videoId;
+      const response = await axios.get(`${this.getApiUrl()}/api/youtube/search-music`, {
+        params: { q: query }
+      });
+      
+      if (response.data.success && response.data.result) {
+        return response.data.result.id;
       }
       return null;
     } catch (error) {
-      console.error('❌ [YouTube API Error]:', error);
+      console.error('❌ [YouTube Backend Error]:', error);
       return null;
     }
   }

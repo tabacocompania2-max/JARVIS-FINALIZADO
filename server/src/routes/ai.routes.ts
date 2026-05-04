@@ -1,10 +1,12 @@
 import express, { Request, Response } from 'express';
-import { callGroqAI } from '../services/ai.service';
+import multer from 'multer';
+import { callGroqAI, transcribeAudio, generateSpeech } from '../services/ai.service';
 import { generateJarvisSystemPrompt } from '../prompts/jarvis.system-prompt';
 import { authenticateToken } from '../middleware/auth';
 import { db } from '../config/database';
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 interface ChatRequest {
   message: string;
@@ -15,6 +17,49 @@ interface ChatResponse {
   response: string;
   timestamp: string;
 }
+
+// Endpoint de transcripción (Audio a Texto)
+router.post(
+  '/transcribe',
+  authenticateToken,
+  upload.single('file'),
+  async (req: Request, res: Response) => {
+    console.log('>>> Received /api/ai/transcribe request');
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Audio file is required' });
+      }
+
+      const text = await transcribeAudio(req.file.buffer, req.file.originalname);
+      return res.json({ text });
+    } catch (error: any) {
+      console.error('Transcription error:', error);
+      return res.status(500).json({ error: 'Transcription failed', details: error.message });
+    }
+  }
+);
+
+// Endpoint de TTS (Texto a Audio)
+router.post(
+  '/tts',
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    console.log('>>> Received /api/ai/tts request');
+    try {
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: 'Text is required' });
+      }
+
+      const audioBuffer = await generateSpeech(text);
+      res.set('Content-Type', 'audio/mpeg');
+      return res.send(audioBuffer);
+    } catch (error: any) {
+      console.error('TTS error:', error);
+      return res.status(500).json({ error: 'TTS failed', details: error.message });
+    }
+  }
+);
 
 router.post(
   '/chat',

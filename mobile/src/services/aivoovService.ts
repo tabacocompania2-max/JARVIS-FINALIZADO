@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import { logService } from './logService';
 
-const AIVOOV_API_KEY = '83299482-bea6-4b80-909e-2a725c688db1';
+const AIVOOV_API_KEY = '';
 const AIVOOV_API_URL = 'https://aivoov.com/api/v8/create';
 
 // Usamos el ID estándar de la documentación de AiVOOV
