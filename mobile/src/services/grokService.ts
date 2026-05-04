@@ -51,6 +51,12 @@ class GrokService {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        logService.add(`❌ Groq Error ${response.status}: ${errorData.error?.message || 'Unknown'}`);
+        throw new Error(`Groq API Error ${response.status}`);
+      }
+
       const data = await response.json();
       
       if (!data.choices || !data.choices[0]) {
@@ -58,8 +64,10 @@ class GrokService {
       }
       
       return data.choices[0].message.content;
-    } catch (error) {
-      logService.add("❌ Error Groq API");
+    } catch (error: any) {
+      if (!error.message.includes("Groq API Error")) {
+        logService.add(`❌ Network/Request Error: ${error.message}`);
+      }
       throw error;
     }
   }
