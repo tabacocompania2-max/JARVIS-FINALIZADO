@@ -8,15 +8,21 @@
       "distribution": "internal",
       "channel": "production"
     },
+    "production": {
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://jarvis-coach-v2-production.up.railway.app"
+      }
+    },
     "preview": {
       "channel": "preview",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://jarvis-coach-v2-production.up.railway.app"
       }
-    },
-    "production": {
-      "channel": "production"
     }
   },
   "submit": {

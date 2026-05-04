@@ -1,14 +1,20 @@
 import { logService } from './logService';
 import { getAuthToken } from './firebase';
 
-const RAILWAY_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://jarvis-coach-v2-production.up.railway.app';
-
 class GrokService {
+  private getApiUrl() {
+    try {
+      return process.env.EXPO_PUBLIC_API_URL || 'https://jarvis-coach-v2-production.up.railway.app';
+    } catch (e) {
+      return 'https://jarvis-coach-v2-production.up.railway.app';
+    }
+  }
+
   async chat(message: string, history: any[] = []): Promise<string> {
     try {
       const token = await getAuthToken();
       
-      const response = await fetch(`${RAILWAY_API_URL}/api/ai/chat`, {
+      const response = await fetch(`${this.getApiUrl()}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
